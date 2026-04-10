@@ -4,10 +4,10 @@ webapp/dist/
 npm-debug.log
 bin/
 build/
-data/
+/data/
 webapp/node_modules/
 webapp/dist/
 *.db
 .env
 .superpowers/
-lanmapper
+/lanmapper
