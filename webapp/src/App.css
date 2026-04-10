@@ -1,0 +1,42 @@
+body {
+  margin: 0;
+  font-family: 'Inter', sans-serif;
+  background: #f5f6fb;
+  color: #111;
+}
+
+.layout {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 24px;
+}
+
+header {
+  margin-bottom: 24px;
+}
+
+.dashboard {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.dashboard div {
+  background: #fff;
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+}
+
+.dashboard h3 {
+  margin: 0 0 8px;
+  font-size: 0.9rem;
+  color: #606f7b;
+}
+
+.dashboard p {
+  margin: 0;
+  font-size: 1.8rem;
+  font-weight: 600;
+}

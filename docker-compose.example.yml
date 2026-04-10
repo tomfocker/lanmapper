@@ -1,0 +1,10 @@
+services:
+  lanmapper:
+    build: .
+    network_mode: host
+    cap_add:
+      - NET_ADMIN
+    volumes:
+      - ./data:/app/data
+    environment:
+      - HTTP_PORT=8080

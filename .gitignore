@@ -1,1 +1,13 @@
 .worktrees/
+webapp/node_modules/
+webapp/dist/
+npm-debug.log
+bin/
+build/
+data/
+webapp/node_modules/
+webapp/dist/
+*.db
+.env
+.superpowers/
+lanmapper

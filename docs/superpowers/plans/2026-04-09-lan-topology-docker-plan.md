@@ -32,7 +32,7 @@
 
 - [ ] **Step 1: 初始化 Go 模块**
 ```bash
-go mod init github.com/tuobutu/lanmapper
+go mod init github.com/tomfocker/lanmapper
 go env -w GO111MODULE=on
 ```
 
@@ -67,8 +67,8 @@ package main
 import (
     "log"
 
-    "github.com/tuobutu/lanmapper/internal/config"
-    "github.com/tuobutu/lanmapper/internal/server"
+    "github.com/tomfocker/lanmapper/internal/config"
+    "github.com/tomfocker/lanmapper/internal/server"
 )
 
 func main() {
