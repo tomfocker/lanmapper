@@ -21,8 +21,11 @@ docker run --rm \
   --cap-add=NET_ADMIN \
   -v $(pwd)/data:/app/data \
   -e HTTP_PORT=8080 \
+  -e SCAN_INTERVAL=5m \
   lanmapper
 ```
+
+容器启动后会自动检测默认路由接口的网段（例如 `192.168.1.0/24`），立即触发一次扫描，并按 `SCAN_INTERVAL`（默认 `0s`，表示禁用）定期执行。只有在自动检测不到或需要追加额外子网时才需要设置 `SCAN_CIDR`。
 
 访问 `http://localhost:8080` 查看 UI。
 
@@ -50,11 +53,24 @@ scan_interval: 0s
 admin_token: "" # 若非空，需在请求头附带 X-Admin-Token
 ```
 
+- `SCAN_CIDR` 留空时会自动读取容器默认路由接口生成 CIDR 列表；设置后会在自动检测基础上追加/覆盖。
+- `SCAN_INTERVAL` 接受 `30s`、`5m`、`1h` 这类 `time.Duration` 字符串，默认为 `0s`（仅启动时扫描一次）。
+
 ## API
 
 - `GET /api/v1/devices`：设备列表
 - `GET /api/v1/links`：链路
 - `GET /api/v1/topology`：拓扑快照
+- `POST /api/v1/scans`：立即触发扫描，可选 JSON body：
+
+```json
+{
+  "cidr": ["192.168.1.0/24"],
+  "interface": "eth0"
+}
+```
+
+  不传 body 时使用自动检测到的默认 targets，返回 `{"scan_id":"...","targets":["192.168.1.0/24"]}`。
 - `POST /api/v1/reports`：生成 JSON 报告
 
 ## 开发

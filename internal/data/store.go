@@ -3,6 +3,7 @@ package data
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"time"
 
@@ -110,4 +111,41 @@ func (s *Store) ListLinks(ctx context.Context) ([]models.Link, error) {
 		out = append(out, l)
 	}
 	return out, rows.Err()
+}
+
+// InsertScan creates a new scan record with running status and JSON targets.
+func (s *Store) InsertScan(ctx context.Context, scanID string, targets []string) error {
+	if targets == nil {
+		targets = []string{}
+	}
+	payload, err := json.Marshal(targets)
+	if err != nil {
+		return fmt.Errorf("marshal targets: %w", err)
+	}
+	started := time.Now().UTC()
+	if _, err := s.db.ExecContext(ctx, `INSERT INTO scans (id, status, started_at, targets) VALUES (?, ?, ?, ?)`,
+		scanID, "running", started, string(payload)); err != nil {
+		return fmt.Errorf("insert scan: %w", err)
+	}
+	return nil
+}
+
+// FinishScan updates scan status and finished timestamp.
+func (s *Store) FinishScan(ctx context.Context, scanID string, status string) error {
+	if status == "" {
+		status = "finished"
+	}
+	finished := time.Now().UTC()
+	res, err := s.db.ExecContext(ctx, `UPDATE scans SET status = ?, finished_at = ? WHERE id = ?`, status, finished, scanID)
+	if err != nil {
+		return fmt.Errorf("finish scan: %w", err)
+	}
+	rows, err := res.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("finish scan rows: %w", err)
+	}
+	if rows == 0 {
+		return fmt.Errorf("finish scan: id %s not found", scanID)
+	}
+	return nil
 }

@@ -19,7 +19,7 @@ import (
 )
 
 // Start launches HTTP + WS API server.
-func Start(cfg *config.Config, store *data.Store, mgr *scanner.Manager, builder *topology.Builder, gen *report.Generator) error {
+func Start(cfg *config.Config, store *data.Store, mgr *scanner.Manager, builder *topology.Builder, gen *report.Generator, sched *scanner.Scheduler, defaultTargets []scanner.DetectedCIDR) error {
 	app := fiber.New()
 	app.Use(recover.New())
 	app.Use(fiberlog.New())
@@ -28,7 +28,7 @@ func Start(cfg *config.Config, store *data.Store, mgr *scanner.Manager, builder 
 	app.Get("/health", func(c *fiber.Ctx) error { return c.JSON(fiber.Map{"status": "ok"}) })
 
 	apiGroup := app.Group("/api/v1", adminAuth(cfg.AdminToken))
-	RegisterRoutes(apiGroup, store, builder, mgr, gen)
+	RegisterRoutes(apiGroup, store, builder, mgr, gen, sched, defaultTargets)
 
 	app.Get("/ws", websocket.New(func(conn *websocket.Conn) {
 		defer conn.Close()

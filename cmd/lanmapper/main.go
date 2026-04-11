@@ -48,10 +48,30 @@ func main() {
 	mgr := scanner.NewManager(runners...)
 	go mgr.Start(ctx)
 
+	autoTargets, err := scanner.DetectDefaultCIDRs()
+	if err != nil {
+		log.Info("auto detect cidr failed", "err", err)
+	}
+	targets, err := scanner.MergeTargets(autoTargets, cfg.ScanCIDR)
+	if err != nil {
+		log.Error("merge targets", "err", err)
+		os.Exit(1)
+	}
+
+	sched := scanner.NewScheduler(mgr, store)
+	if len(targets) > 0 {
+		if _, err := sched.Trigger(ctx, targets); err != nil {
+			log.Error("initial scan trigger failed", "err", err)
+		}
+		sched.StartInterval(ctx, targets, cfg.ScanInterval)
+	} else {
+		log.Info("no CIDR targets detected; configure SCAN_CIDR to enable scanning")
+	}
+
 	builder := topology.NewBuilder(store)
 	gen := report.NewGenerator(store, cfg.DataDir)
 
-	if err := api.Start(cfg, store, mgr, builder, gen); err != nil {
+	if err := api.Start(cfg, store, mgr, builder, gen, sched, targets); err != nil {
 		log.Error("start api", "err", err)
 		os.Exit(1)
 	}

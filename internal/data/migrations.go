@@ -43,6 +43,7 @@ func migrate(db *sql.DB) error {
             status TEXT,
             started_at DATETIME,
             finished_at DATETIME,
+            targets TEXT,
             config_snapshot TEXT,
             stats TEXT
         );`,
@@ -60,6 +61,43 @@ func migrate(db *sql.DB) error {
 		if _, err := db.Exec(stmt); err != nil {
 			return fmt.Errorf("migrate: %w", err)
 		}
+	}
+	if err := ensureColumn(db, "scans", "targets", "TEXT"); err != nil {
+		return err
+	}
+	return nil
+}
+
+func ensureColumn(db *sql.DB, table, column, columnType string) error {
+	query := fmt.Sprintf(`PRAGMA table_info("%s");`, table)
+	rows, err := db.Query(query)
+	if err != nil {
+		return fmt.Errorf("inspect %s: %w", table, err)
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var (
+			cid     int
+			name    string
+			ctype   string
+			notnull int
+			dflt    sql.NullString
+			pk      int
+		)
+		if err := rows.Scan(&cid, &name, &ctype, &notnull, &dflt, &pk); err != nil {
+			return fmt.Errorf("scan table info %s: %w", table, err)
+		}
+		if name == column {
+			return nil
+		}
+	}
+	if err := rows.Err(); err != nil {
+		return fmt.Errorf("iterate columns %s: %w", table, err)
+	}
+	stmt := fmt.Sprintf(`ALTER TABLE "%s" ADD COLUMN "%s" %s;`, table, column, columnType)
+	if _, err := db.Exec(stmt); err != nil {
+		return fmt.Errorf("add column %s.%s: %w", table, column, err)
 	}
 	return nil
 }

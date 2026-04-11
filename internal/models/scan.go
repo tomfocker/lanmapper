@@ -8,6 +8,7 @@ type Scan struct {
 	Status     string    `db:"status" json:"status"`
 	StartedAt  time.Time `db:"started_at" json:"started_at"`
 	FinishedAt time.Time `db:"finished_at" json:"finished_at"`
+	Targets    string    `db:"targets" json:"targets"`
 	Config     string    `db:"config_snapshot" json:"config_snapshot"`
 	Stats      string    `db:"stats" json:"stats"`
 }

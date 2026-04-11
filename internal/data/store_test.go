@@ -2,6 +2,7 @@ package data
 
 import (
 	"context"
+	"database/sql"
 	"os"
 	"path/filepath"
 	"testing"
@@ -60,5 +61,45 @@ func TestMigrateIdempotent(t *testing.T) {
 	}
 	if _, err := os.Stat(path); err != nil {
 		t.Fatalf("db not created: %v", err)
+	}
+}
+
+func TestInsertAndFinishScan(t *testing.T) {
+	dir := t.TempDir()
+	store, err := New(filepath.Join(dir, "test.db"))
+	if err != nil {
+		t.Fatalf("new store: %v", err)
+	}
+	ctx := context.Background()
+	if err := store.InsertScan(ctx, "scan1", []string{"192.168.1.0/24"}); err != nil {
+		t.Fatalf("insert scan: %v", err)
+	}
+	var status, targets string
+	var finished sql.NullTime
+	if err := store.db.QueryRowContext(ctx, `SELECT status, targets, finished_at FROM scans WHERE id = ?`, "scan1").
+		Scan(&status, &targets, &finished); err != nil {
+		t.Fatalf("query scan: %v", err)
+	}
+	if status != "running" {
+		t.Fatalf("unexpected status %s", status)
+	}
+	if targets != `["192.168.1.0/24"]` {
+		t.Fatalf("unexpected targets %s", targets)
+	}
+	if finished.Valid {
+		t.Fatalf("expected unfinished scan")
+	}
+	if err := store.FinishScan(ctx, "scan1", "done"); err != nil {
+		t.Fatalf("finish scan: %v", err)
+	}
+	if err := store.db.QueryRowContext(ctx, `SELECT status, finished_at FROM scans WHERE id = ?`, "scan1").
+		Scan(&status, &finished); err != nil {
+		t.Fatalf("query scan after finish: %v", err)
+	}
+	if status != "done" {
+		t.Fatalf("status not updated: %s", status)
+	}
+	if !finished.Valid {
+		t.Fatalf("finished_at not set")
 	}
 }
