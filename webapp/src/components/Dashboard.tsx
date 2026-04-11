@@ -11,6 +11,23 @@ export function Dashboard() {
     routers: devices.filter((d) => d.type?.toLowerCase().includes('router')).length,
   }), [devices]);
 
+  if (devicesQuery.isLoading) {
+    return <div className="dashboard state">正在扫描网络…</div>;
+  }
+
+  if (devicesQuery.isError) {
+    return <div className="dashboard state error">获取设备数据失败</div>;
+  }
+
+  if (!devices.length) {
+    return (
+      <div className="dashboard empty">
+        <h3>暂无设备</h3>
+        <p>扫描完成后会自动刷新</p>
+      </div>
+    );
+  }
+
   return (
     <div className="dashboard">
       <div>
