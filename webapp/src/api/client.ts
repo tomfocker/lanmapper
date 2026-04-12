@@ -9,8 +9,10 @@ export interface Device {
   ipv4: string;
   ipv6: string;
   mac: string;
-  vendor: string;
-  type: string;
+  vendor?: string;
+  type?: string;
+  hostname?: string;
+  sys_object_id?: string;
   last_seen: string;
   confidence: number;
 }
@@ -24,6 +26,7 @@ export interface Link {
   media: string;
   speed_mbps: number;
   source: string;
+  kind?: string;
   confidence: number;
 }
 

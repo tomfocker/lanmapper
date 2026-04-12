@@ -59,4 +59,8 @@ curl -X POST http://localhost:8080/api/v1/reports
 
 # 查看链路来源（kind 字段）
 curl http://localhost:8080/api/v1/links | jq '.[0].kind'
+
+# UI 中的样式说明
+- 设备卡片标题显示检测到的 Hostname/厂商/ID，底部显示 MAC 与最近更新时间。
+- 拓扑图中节点颜色区分类型（红=Router、绿=Switch、灰=Endpoint），线条样式区分来源（实线=LLDP、虚线=Bridge、点线=Gateway）。
 ```

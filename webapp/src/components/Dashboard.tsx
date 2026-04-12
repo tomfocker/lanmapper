@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { fetchDevices } from '../api/client';
+import type { Device } from '../api/client';
 
 export function Dashboard() {
   const devicesQuery = useQuery({ queryKey: ['devices'], queryFn: fetchDevices, refetchInterval: 30000 });
@@ -29,19 +30,47 @@ export function Dashboard() {
   }
 
   return (
-    <div className="dashboard">
-      <div>
-        <h3>设备总数</h3>
-        <p>{stats.total}</p>
+    <>
+      <div className="dashboard">
+        <div>
+          <h3>设备总数</h3>
+          <p>{stats.total}</p>
+        </div>
+        <div>
+          <h3>交换机</h3>
+          <p>{stats.switches}</p>
+        </div>
+        <div>
+          <h3>路由器</h3>
+          <p>{stats.routers}</p>
+        </div>
       </div>
-      <div>
-        <h3>交换机</h3>
-        <p>{stats.switches}</p>
+      <div className="device-list">
+        {devices.map((device) => (
+          <article key={device.id} className="device-card">
+            <header>
+              <div>
+                <strong>{formatTitle(device)}</strong>
+                <span className={`device-type ${normalizeType(device.type)}`}>{device.type || 'Endpoint'}</span>
+              </div>
+              <span className="device-vendor">{device.vendor || '未知厂商'}</span>
+            </header>
+            <p className="device-ip">{device.ipv4 || device.id}</p>
+            <footer>
+              <span>{device.mac}</span>
+              <span>上次看到：{new Date(device.last_seen).toLocaleString()}</span>
+            </footer>
+          </article>
+        ))}
       </div>
-      <div>
-        <h3>路由器</h3>
-        <p>{stats.routers}</p>
-      </div>
-    </div>
+    </>
   );
+}
+
+function formatTitle(device: Device) {
+  return device.hostname || device.vendor || device.id;
+}
+
+function normalizeType(type?: string) {
+  return type ? type.toLowerCase() : 'endpoint';
 }

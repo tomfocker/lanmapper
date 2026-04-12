@@ -81,6 +81,7 @@ admin_token: "" # 若非空，需在请求头附带 X-Admin-Token
 - **SNMP/LLDP**：默认启用 gosnmp 轮询 `LLDP-MIB`、`BRIDGE-MIB`、`IF-MIB`，补全 `sysName`、邻居、MAC 表。确保被测设备开放 SNMP/LLDP 或在 `snmp_communities` 中添加正确凭据。
 - **OUI + 服务推断**：内置精简 OUI 表（可自行替换），结合 mDNS/NetBIOS 服务推断设备类型/厂商。
 - **网关回退**：若网络禁用 SNMP，仍会把每个终端与默认网关生成 `gateway` 链路，保证拓扑视图不再是孤岛。
+- **前端展示**：UI 节点格式为 `名称 (类型) / IP`，节点颜色区分“Router/Switch/Endpoint”，链路根据来源（LLDP/Bridge/Gateway）显示不同线型，并在面板中展示 Vendor、最近上线时间等信息。
 
 ## 开发
 
