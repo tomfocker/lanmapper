@@ -1,0 +1,6 @@
+# prefix,vendor,type
+00:1A:2B,Cisco Systems,switch
+D0:11:6E,Apple,endpoint
+4C:CC:6A,Huawei Technologies,router
+02:42:AC,Docker,virtual
+B8:27:EB,Raspberry Pi,endpoint

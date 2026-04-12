@@ -55,6 +55,7 @@ admin_token: "" # 若非空，需在请求头附带 X-Admin-Token
 
 - `SCAN_CIDR` 留空时会自动读取容器默认路由接口生成 CIDR 列表；设置后会在自动检测基础上追加/覆盖。
 - `SCAN_INTERVAL` 接受 `30s`、`5m`、`1h` 这类 `time.Duration` 字符串，默认为 `0s`（仅启动时扫描一次）。
+- `SNMP_COMMUNITIES` 控制 SNMP 轮询所用的 community（用于 LLDP / Bridge MIB），可设置多个。
 
 ## API
 
@@ -72,7 +73,14 @@ admin_token: "" # 若非空，需在请求头附带 X-Admin-Token
 
   不传 body 时使用自动检测到的默认 targets，返回 `{"scan_id":"...","targets":["192.168.1.0/24"]}`。
 - `POST /api/v1/reports`：生成 JSON 报告
+- `GET /api/v1/links` 会返回 `kind` 字段，表明链路来源（如 `lldp`、`bridge`、`gateway`）。
 - 所有扫描结果都会实时落库，可随时通过 `GET /api/v1/devices` / `/api/v1/links` 拉取最新数据或由前端自动刷新。
+
+## 拓扑识别逻辑
+
+- **SNMP/LLDP**：默认启用 gosnmp 轮询 `LLDP-MIB`、`BRIDGE-MIB`、`IF-MIB`，补全 `sysName`、邻居、MAC 表。确保被测设备开放 SNMP/LLDP 或在 `snmp_communities` 中添加正确凭据。
+- **OUI + 服务推断**：内置精简 OUI 表（可自行替换），结合 mDNS/NetBIOS 服务推断设备类型/厂商。
+- **网关回退**：若网络禁用 SNMP，仍会把每个终端与默认网关生成 `gateway` 链路，保证拓扑视图不再是孤岛。
 
 ## 开发
 

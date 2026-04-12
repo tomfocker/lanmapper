@@ -2,6 +2,7 @@ package scanner
 
 import (
 	"bufio"
+	"encoding/binary"
 	"errors"
 	"fmt"
 	"net"
@@ -50,6 +51,11 @@ func DetectDefaultCIDRs() ([]DetectedCIDR, error) {
 		return nil, fmt.Errorf("interface %s has no IPv4 addresses", iface.Name)
 	}
 	return dedupeCIDRs(detected), nil
+}
+
+// DetectDefaultGateway returns the IPv4 gateway IP if present.
+func DetectDefaultGateway() (string, error) {
+	return defaultGatewayIP("/proc/net/route")
 }
 
 // LocalInterfaces returns network interfaces suitable for scanning.
@@ -108,6 +114,40 @@ func defaultRouteIface(path string) (string, error) {
 		return "", err
 	}
 	return "", errors.New("default route not found")
+}
+
+func defaultGatewayIP(path string) (string, error) {
+	file, err := os.Open(filepath.Clean(path))
+	if err != nil {
+		return "", err
+	}
+	defer file.Close()
+	scanner := bufio.NewScanner(file)
+	if !scanner.Scan() {
+		return "", errors.New("empty route table")
+	}
+	for scanner.Scan() {
+		fields := strings.Fields(scanner.Text())
+		if len(fields) < 5 {
+			continue
+		}
+		dest := fields[1]
+		if dest != "00000000" {
+			continue
+		}
+		gwHex := fields[2]
+		val, err := strconv.ParseUint(gwHex, 16, 32)
+		if err != nil {
+			continue
+		}
+		buf := make([]byte, 4)
+		binary.LittleEndian.PutUint32(buf, uint32(val))
+		return net.IP(buf).String(), nil
+	}
+	if err := scanner.Err(); err != nil {
+		return "", err
+	}
+	return "", errors.New("gateway not found")
 }
 
 func firstCandidateIface() string {

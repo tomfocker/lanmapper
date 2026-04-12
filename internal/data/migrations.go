@@ -65,6 +65,15 @@ func migrate(db *sql.DB) error {
 	if err := ensureColumn(db, "scans", "targets", "TEXT"); err != nil {
 		return err
 	}
+	if err := ensureColumn(db, "devices", "hostname", "TEXT"); err != nil {
+		return err
+	}
+	if err := ensureColumn(db, "devices", "sys_object_id", "TEXT"); err != nil {
+		return err
+	}
+	if err := ensureColumn(db, "links", "kind", "TEXT"); err != nil {
+		return err
+	}
 	return nil
 }
 

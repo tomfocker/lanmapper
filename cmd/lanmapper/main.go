@@ -37,6 +37,9 @@ func main() {
 	}
 	recorder := scanner.NewRecorder(store, log)
 	defer recorder.Close()
+	if gw, err := scanner.DetectDefaultGateway(); err == nil && gw != "" {
+		recorder.SetGateway(gw)
+	}
 
 	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer cancel()

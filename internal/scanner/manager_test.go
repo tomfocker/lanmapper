@@ -38,4 +38,5 @@ type managerStubRecorder struct{}
 
 func (s *managerStubRecorder) RecordDevice(context.Context, DeviceObservation) {}
 func (s *managerStubRecorder) RecordLink(context.Context, LinkObservation)     {}
+func (s *managerStubRecorder) SetGateway(string)                               {}
 func (s *managerStubRecorder) Close()                                         {}

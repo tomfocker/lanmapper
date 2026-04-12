@@ -8,6 +8,7 @@
 - `SCAN_INTERVAL`: 周期扫描间隔，如 `30s`、`5m`、`1h`，默认 `0s` 表示仅启动时扫描一次。
 - `SNMP_COMMUNITIES`: SNMP v2c community 列表。
 - `ADMIN_TOKEN`: 若配置，则所有 `/api/v1` 请求需加 `X-Admin-Token` 头。
+- `OUI_PATH`: （可选）挂载自定义 OUI CSV（格式 `prefix,vendor,type`），默认使用内置精简表。
 
 可将上述写入 `data/config.yaml`，示例：
 
@@ -55,4 +56,7 @@ curl -X POST http://localhost:8080/api/v1/scans \
 
 # 触发报告（返回文件路径）
 curl -X POST http://localhost:8080/api/v1/reports
+
+# 查看链路来源（kind 字段）
+curl http://localhost:8080/api/v1/links | jq '.[0].kind'
 ```

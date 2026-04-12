@@ -37,17 +37,19 @@ func (s *Store) UpsertDevice(ctx context.Context, d *models.Device) error {
 		d.LastSeen = time.Now().UTC()
 	}
 	_, err := s.db.ExecContext(ctx, `INSERT INTO devices
-        (id, ipv4, ipv6, mac, vendor, type, last_seen, confidence)
-        VALUES(?, ?, ?, ?, ?, ?, ?, ?)
+        (id, ipv4, ipv6, mac, vendor, type, hostname, sys_object_id, last_seen, confidence)
+        VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON CONFLICT(id) DO UPDATE SET
           ipv4=excluded.ipv4,
           ipv6=excluded.ipv6,
           mac=excluded.mac,
           vendor=excluded.vendor,
           type=excluded.type,
+          hostname=excluded.hostname,
+          sys_object_id=excluded.sys_object_id,
           last_seen=excluded.last_seen,
           confidence=excluded.confidence`,
-		d.ID, d.IPv4, d.IPv6, d.MAC, d.Vendor, d.Type, d.LastSeen, d.Confidence,
+		d.ID, d.IPv4, d.IPv6, d.MAC, d.Vendor, d.Type, d.Hostname, d.SysObjectID, d.LastSeen, d.Confidence,
 	)
 	if err != nil {
 		return fmt.Errorf("upsert device: %w", err)
@@ -57,7 +59,7 @@ func (s *Store) UpsertDevice(ctx context.Context, d *models.Device) error {
 
 // ListDevices returns all devices ordered by last seen desc.
 func (s *Store) ListDevices(ctx context.Context) ([]models.Device, error) {
-	rows, err := s.db.QueryContext(ctx, `SELECT id, ipv4, ipv6, mac, vendor, type, last_seen, confidence FROM devices ORDER BY last_seen DESC`)
+	rows, err := s.db.QueryContext(ctx, `SELECT id, ipv4, ipv6, mac, vendor, type, hostname, sys_object_id, last_seen, confidence FROM devices ORDER BY last_seen DESC`)
 	if err != nil {
 		return nil, fmt.Errorf("query devices: %w", err)
 	}
@@ -65,7 +67,7 @@ func (s *Store) ListDevices(ctx context.Context) ([]models.Device, error) {
 	var out []models.Device
 	for rows.Next() {
 		var d models.Device
-		if err := rows.Scan(&d.ID, &d.IPv4, &d.IPv6, &d.MAC, &d.Vendor, &d.Type, &d.LastSeen, &d.Confidence); err != nil {
+		if err := rows.Scan(&d.ID, &d.IPv4, &d.IPv6, &d.MAC, &d.Vendor, &d.Type, &d.Hostname, &d.SysObjectID, &d.LastSeen, &d.Confidence); err != nil {
 			return nil, fmt.Errorf("scan device: %w", err)
 		}
 		out = append(out, d)
@@ -76,8 +78,8 @@ func (s *Store) ListDevices(ctx context.Context) ([]models.Device, error) {
 // UpsertLink stores link edges.
 func (s *Store) UpsertLink(ctx context.Context, l *models.Link) error {
 	_, err := s.db.ExecContext(ctx, `INSERT INTO links
-        (id, a_device, a_interface, b_device, b_interface, media, speed_mbps, source, confidence)
-        VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)
+        (id, a_device, a_interface, b_device, b_interface, media, speed_mbps, source, kind, confidence)
+        VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON CONFLICT(id) DO UPDATE SET
           a_device=excluded.a_device,
           a_interface=excluded.a_interface,
@@ -86,8 +88,9 @@ func (s *Store) UpsertLink(ctx context.Context, l *models.Link) error {
           media=excluded.media,
           speed_mbps=excluded.speed_mbps,
           source=excluded.source,
+          kind=excluded.kind,
           confidence=excluded.confidence`,
-		l.ID, l.ADevice, l.AInterface, l.BDevice, l.BInterface, l.Media, l.SpeedMbps, l.Source, l.Confidence,
+		l.ID, l.ADevice, l.AInterface, l.BDevice, l.BInterface, l.Media, l.SpeedMbps, l.Source, l.Kind, l.Confidence,
 	)
 	if err != nil {
 		return fmt.Errorf("upsert link: %w", err)
@@ -97,7 +100,7 @@ func (s *Store) UpsertLink(ctx context.Context, l *models.Link) error {
 
 // ListLinks returns current link snapshot.
 func (s *Store) ListLinks(ctx context.Context) ([]models.Link, error) {
-	rows, err := s.db.QueryContext(ctx, `SELECT id, a_device, a_interface, b_device, b_interface, media, speed_mbps, source, confidence FROM links`)
+	rows, err := s.db.QueryContext(ctx, `SELECT id, a_device, a_interface, b_device, b_interface, media, speed_mbps, source, kind, confidence FROM links`)
 	if err != nil {
 		return nil, fmt.Errorf("query links: %w", err)
 	}
@@ -105,7 +108,7 @@ func (s *Store) ListLinks(ctx context.Context) ([]models.Link, error) {
 	var out []models.Link
 	for rows.Next() {
 		var l models.Link
-		if err := rows.Scan(&l.ID, &l.ADevice, &l.AInterface, &l.BDevice, &l.BInterface, &l.Media, &l.SpeedMbps, &l.Source, &l.Confidence); err != nil {
+		if err := rows.Scan(&l.ID, &l.ADevice, &l.AInterface, &l.BDevice, &l.BInterface, &l.Media, &l.SpeedMbps, &l.Source, &l.Kind, &l.Confidence); err != nil {
 			return nil, fmt.Errorf("scan link: %w", err)
 		}
 		out = append(out, l)

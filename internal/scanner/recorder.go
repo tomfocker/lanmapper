@@ -8,19 +8,23 @@ import (
 
 	"github.com/tomfocker/lanmapper/internal/data"
 	"github.com/tomfocker/lanmapper/internal/models"
+	"github.com/tomfocker/lanmapper/internal/scanner/oui"
 )
 
 // DeviceObservation captures a single device discovery event.
 type DeviceObservation struct {
-	ID         string
-	IPv4       string
-	MAC        string
-	Hostname   string
-	Interface  string
-	Source     string
-	Vendor     string
-	Confidence float64
-	ObservedAt time.Time
+	ID          string
+	IPv4        string
+	MAC         string
+	Hostname    string
+	Interface   string
+	Source      string
+	Vendor      string
+	SysObjectID string
+	Services    []string
+	TypeHint    string
+	Confidence  float64
+	ObservedAt  time.Time
 }
 
 // LinkObservation captures an inferred connection between two devices.
@@ -32,6 +36,7 @@ type LinkObservation struct {
 	BInterface string
 	Media      string
 	Source     string
+	Kind       string
 	Confidence float64
 	ObservedAt time.Time
 }
@@ -40,6 +45,7 @@ type LinkObservation struct {
 type Recorder interface {
 	RecordDevice(context.Context, DeviceObservation)
 	RecordLink(context.Context, LinkObservation)
+	SetGateway(string)
 	Close()
 }
 
@@ -53,6 +59,8 @@ type recorder struct {
 	cacheTTL time.Duration
 	devCache map[string]time.Time
 	mu       sync.Mutex
+	lookup   *oui.Lookup
+	gatewayID string
 }
 
 // NewRecorder builds a Recorder backed by data.Store.
@@ -65,6 +73,7 @@ func NewRecorder(store *data.Store, log Logger) Recorder {
 		stopCh:   make(chan struct{}),
 		cacheTTL: 5 * time.Second,
 		devCache: make(map[string]time.Time),
+		lookup:   oui.NewLookup(),
 	}
 	r.start()
 	return r
@@ -95,6 +104,15 @@ func (r *recorder) RecordLink(ctx context.Context, obs LinkObservation) {
 	default:
 		r.log.Warn("link observation backlog", "id", obs.ID)
 	}
+}
+
+func (r *recorder) SetGateway(id string) {
+	if id == "" {
+		return
+	}
+	r.mu.Lock()
+	r.gatewayID = strings.ToLower(strings.TrimSpace(id))
+	r.mu.Unlock()
 }
 
 func (r *recorder) consumeDevices() {
@@ -139,18 +157,38 @@ func (r *recorder) handleDevice(obs DeviceObservation) {
 	if r.isCached(id, obs.ObservedAt) {
 		return
 	}
+	vendor := obs.Vendor
+	typeHint := obs.TypeHint
+	if vendor == "" || typeHint == "" {
+		if entry, ok := r.lookup.Lookup(obs.MAC); ok {
+			if vendor == "" {
+				vendor = entry.Vendor
+			}
+			if typeHint == "" {
+				typeHint = entry.TypeHint
+			}
+		}
+	}
+
+	deviceType := typeHint
+	if deviceType == "" {
+		deviceType = obs.Source
+	}
 	device := &models.Device{
-		ID:         id,
-		IPv4:       obs.IPv4,
-		MAC:        strings.ToLower(obs.MAC),
-		Vendor:     obs.Vendor,
-		Type:       obs.Source,
-		LastSeen:   obs.ObservedAt,
-		Confidence: obs.Confidence,
+		ID:          id,
+		IPv4:        obs.IPv4,
+		MAC:         strings.ToLower(obs.MAC),
+		Vendor:      vendor,
+		Type:        deviceType,
+		Hostname:    obs.Hostname,
+		SysObjectID: obs.SysObjectID,
+		LastSeen:    obs.ObservedAt,
+		Confidence:  obs.Confidence,
 	}
 	if err := r.store.UpsertDevice(context.Background(), device); err != nil {
 		r.log.Error("upsert device failed", "id", id, "err", err)
 	}
+	r.maybeEmitGatewayLink(id, obs.Source)
 }
 
 func (r *recorder) handleLink(obs LinkObservation) {
@@ -173,6 +211,7 @@ func (r *recorder) handleLink(obs LinkObservation) {
 		BInterface: obs.BInterface,
 		Media:      obs.Media,
 		Source:     obs.Source,
+		Kind:       obs.Kind,
 		Confidence: obs.Confidence,
 	}
 	if err := r.store.UpsertLink(context.Background(), link); err != nil {
@@ -190,4 +229,23 @@ func (r *recorder) isCached(id string, ts time.Time) bool {
 	}
 	r.devCache[id] = ts
 	return false
+}
+
+func (r *recorder) maybeEmitGatewayLink(deviceID, source string) {
+	r.mu.Lock()
+	gateway := r.gatewayID
+	r.mu.Unlock()
+	if gateway == "" || deviceID == gateway {
+		return
+	}
+	if source != "arp_nd" && source != "icmp" {
+		return
+	}
+	r.RecordLink(context.Background(), LinkObservation{
+		ADevice:    deviceID,
+		BDevice:    gateway,
+		Kind:       "gateway",
+		Source:     "gateway",
+		Confidence: 0.2,
+	})
 }

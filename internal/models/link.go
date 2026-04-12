@@ -10,5 +10,6 @@ type Link struct {
 	Media      string  `db:"media" json:"media"`
 	SpeedMbps  int64   `db:"speed_mbps" json:"speed_mbps"`
 	Source     string  `db:"source" json:"source"`
+	Kind       string  `db:"kind" json:"kind"`
 	Confidence float64 `db:"confidence" json:"confidence"`
 }
