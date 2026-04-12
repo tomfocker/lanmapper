@@ -15,7 +15,7 @@ import (
 
 func TestScanRouteDefaultTargets(t *testing.T) {
 	app := fiber.New()
-	mgr := scanner.NewManager()
+	mgr := scanner.NewManager(nil)
 	rec := &stubRecorder{}
 	sched := scanner.NewScheduler(mgr, rec)
 	_, cidr, _ := net.ParseCIDR("192.168.1.0/24")
@@ -47,7 +47,7 @@ func TestScanRouteDefaultTargets(t *testing.T) {
 
 func TestScanRouteInvalidCIDR(t *testing.T) {
 	app := fiber.New()
-	mgr := scanner.NewManager()
+	mgr := scanner.NewManager(nil)
 	rec := &stubRecorder{}
 	sched := scanner.NewScheduler(mgr, rec)
 	RegisterRoutes(app, nil, nil, mgr, nil, sched, nil)
@@ -83,7 +83,7 @@ func TestScanRouteSchedulerUnavailable(t *testing.T) {
 
 func TestScanRouteCustomCIDR(t *testing.T) {
 	app := fiber.New()
-	mgr := scanner.NewManager()
+	mgr := scanner.NewManager(nil)
 	rec := &stubRecorder{}
 	sched := scanner.NewScheduler(mgr, rec)
 	_, cidr, _ := net.ParseCIDR("10.0.0.0/8")

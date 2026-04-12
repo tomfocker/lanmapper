@@ -18,7 +18,7 @@ func NewServiceRunner(log Logger) *ServiceRunner {
 
 func (r *ServiceRunner) Name() string { return "services" }
 
-func (r *ServiceRunner) Run(job Job) error {
+func (r *ServiceRunner) Run(job Job, recorder Recorder) error {
 	resolver, err := zeroconf.NewResolver(nil)
 	if err != nil {
 		return err
@@ -29,6 +29,16 @@ func (r *ServiceRunner) Run(job Job) error {
 	go func() {
 		for entry := range entries {
 			r.log.Info("mdns service", "instance", entry.Instance, "addr", entry.AddrIPv4)
+			if recorder == nil || len(entry.AddrIPv4) == 0 {
+				continue
+			}
+			recorder.RecordDevice(context.Background(), DeviceObservation{
+				ID:         entry.Instance,
+				IPv4:       entry.AddrIPv4[0].String(),
+				Hostname:   entry.HostName,
+				Source:     r.Name(),
+				Confidence: 0.3,
+			})
 		}
 	}()
 	return resolver.Browse(ctx, "_services._dns-sd._udp", "local.", entries)

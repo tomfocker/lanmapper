@@ -10,24 +10,27 @@ import (
 
 // Manager schedules scanning jobs across runners.
 type Manager struct {
-	runners []Runner
-	jobs    chan Job
-	wg      sync.WaitGroup
-	log     Logger
+	runners  []Runner
+	jobs     chan Job
+	wg       sync.WaitGroup
+	log      Logger
+	recorder Recorder
 }
 
 // Logger minimal logging interface to decouple from slog.
 type Logger interface {
 	Error(msg string, args ...any)
 	Info(msg string, args ...any)
+	Warn(msg string, args ...any)
 }
 
 // NewManager constructs manager with provided runners.
-func NewManager(runners ...Runner) *Manager {
+func NewManager(recorder Recorder, runners ...Runner) *Manager {
 	return &Manager{
-		runners: runners,
-		jobs:    make(chan Job, 64),
-		log:     logger.L(),
+		runners:  runners,
+		jobs:     make(chan Job, 64),
+		log:      logger.L(),
+		recorder: recorder,
 	}
 }
 
@@ -47,7 +50,7 @@ func (m *Manager) Start(ctx context.Context) {
 						return
 					}
 					for _, r := range m.runners {
-						if err := r.Run(job); err != nil {
+						if err := r.Run(job, m.recorder); err != nil {
 							m.log.Error("runner failed", "runner", r.Name(), "err", err)
 						}
 					}

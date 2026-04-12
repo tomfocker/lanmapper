@@ -1,9 +1,12 @@
 package scanner
 
 import (
+	"bufio"
 	"context"
 	"fmt"
 	"net"
+	"os"
+	"strings"
 
 	"golang.org/x/time/rate"
 )
@@ -24,7 +27,7 @@ func NewARPNDRunner(log Logger) *ARPNDRunner {
 
 func (r *ARPNDRunner) Name() string { return "arp_nd" }
 
-func (r *ARPNDRunner) Run(job Job) error {
+func (r *ARPNDRunner) Run(job Job, recorder Recorder) error {
 	if job.CIDR == nil {
 		return fmt.Errorf("arp_nd: missing CIDR")
 	}
@@ -34,6 +37,29 @@ func (r *ARPNDRunner) Run(job Job) error {
 			return err
 		}
 		r.log.Info("arp_nd probe", "ip", ip.String(), "iface", job.Interface, "scan", job.ScanID)
+	}
+	if recorder != nil {
+		if err := r.recordNeighbors(recorder, job.Interface); err != nil {
+			r.log.Warn("record neighbors", "err", err)
+		}
+	}
+	return nil
+}
+
+func (r *ARPNDRunner) recordNeighbors(recorder Recorder, iface string) error {
+	rows, err := parseARP("/proc/net/arp")
+	if err != nil {
+		return err
+	}
+	for _, row := range rows {
+		recorder.RecordDevice(context.Background(), DeviceObservation{
+			ID:         row.MAC,
+			IPv4:       row.IP,
+			MAC:        row.MAC,
+			Interface:  iface,
+			Source:     r.Name(),
+			Confidence: 0.7,
+		})
 	}
 	return nil
 }
@@ -84,4 +110,35 @@ func broadcastAddr(cidr *net.IPNet) net.IP {
 		out[i] |= ^mask[i]
 	}
 	return out
+}
+
+type arpEntry struct {
+	IP  string
+	MAC string
+}
+
+func parseARP(path string) ([]arpEntry, error) {
+	file, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+	var entries []arpEntry
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		fields := strings.Fields(scanner.Text())
+		if len(fields) < 6 || fields[0] == "IP" {
+			continue
+		}
+		ip := fields[0]
+		mac := strings.ToLower(fields[3])
+		if mac == "00:00:00:00:00:00" || mac == "ff:ff:ff:ff:ff:ff" {
+			continue
+		}
+		entries = append(entries, arpEntry{IP: ip, MAC: mac})
+	}
+	if err := scanner.Err(); err != nil {
+		return nil, err
+	}
+	return entries, nil
 }

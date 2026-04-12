@@ -43,6 +43,8 @@ HTTP_PORT=8080 go run ./cmd/lanmapper
 # 列出设备
 curl http://localhost:8080/api/v1/devices
 
+# 输出包含 MAC / LastSeen 的 JSON，随着扫描会持续刷新
+
 # 触发扫描（不带 body 时使用默认 targets）
 curl -X POST http://localhost:8080/api/v1/scans
 

@@ -35,6 +35,8 @@ func main() {
 		log.Error("open store", "err", err)
 		os.Exit(1)
 	}
+	recorder := scanner.NewRecorder(store, log)
+	defer recorder.Close()
 
 	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer cancel()
@@ -45,7 +47,7 @@ func main() {
 		scanner.NewSNMPRunner(log, cfg.SNMPCommunities),
 		scanner.NewServiceRunner(log),
 	}
-	mgr := scanner.NewManager(runners...)
+	mgr := scanner.NewManager(recorder, runners...)
 	go mgr.Start(ctx)
 
 	autoTargets, err := scanner.DetectDefaultCIDRs()

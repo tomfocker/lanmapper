@@ -1,6 +1,7 @@
 package scanner
 
 import (
+	"context"
 	"fmt"
 	"net"
 	"os"
@@ -22,7 +23,7 @@ func NewICMPRunner(log Logger) *ICMPRunner {
 
 func (r *ICMPRunner) Name() string { return "icmp" }
 
-func (r *ICMPRunner) Run(job Job) error {
+func (r *ICMPRunner) Run(job Job, recorder Recorder) error {
 	if job.CIDR == nil {
 		return fmt.Errorf("icmp: missing CIDR")
 	}
@@ -52,6 +53,15 @@ func (r *ICMPRunner) Run(job Job) error {
 		buf := make([]byte, 1500)
 		if _, _, err := conn.ReadFrom(buf); err == nil {
 			r.log.Info("icmp reply", "ip", ip.String(), "scan", job.ScanID)
+			if recorder != nil {
+				recorder.RecordDevice(context.Background(), DeviceObservation{
+					ID:         ip.String(),
+					IPv4:       ip.String(),
+					Interface:  job.Interface,
+					Source:     r.Name(),
+					Confidence: 0.5,
+				})
+			}
 		}
 	}
 	return nil

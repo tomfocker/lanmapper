@@ -22,7 +22,7 @@ func NewSNMPRunner(log Logger, communities []string) *SNMPRunner {
 
 func (r *SNMPRunner) Name() string { return "snmp" }
 
-func (r *SNMPRunner) Run(job Job) error {
+func (r *SNMPRunner) Run(job Job, recorder Recorder) error {
 	ips := hostsFromCIDR(job.CIDR)
 	for _, ip := range ips {
 		for _, community := range r.communities {

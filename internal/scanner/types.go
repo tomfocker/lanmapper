@@ -14,5 +14,5 @@ type Job struct {
 // Runner executes a scanning protocol.
 type Runner interface {
 	Name() string
-	Run(job Job) error
+	Run(job Job, recorder Recorder) error
 }
